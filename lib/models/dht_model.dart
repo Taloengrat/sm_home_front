@@ -25,21 +25,43 @@ class Dht {
 
   factory Dht.fromJson(Map<String, dynamic> json) {
     return Dht(
-      piId: json['piId'] as String,
-      dhtId: json['dhtId'] as String,
-      name: json['name'],
+      piId: json['piId'].toString(),
+      dhtId: json['dhtId'].toString(),
+      name: json['name'].toString(),
       status: json['status'] as int == 1
           ? DEVICE_STATUS.ACTIVE
           : DEVICE_STATUS.INACTIVE,
       isOnline: json['isOnline'] as int == 1
           ? DEVICE_ONLINE.ACTIVE
           : DEVICE_ONLINE.INACTIVE,
-      temperature: json['temperature'],
-      moisture: json['moisture'],
-      positionX: json['positionX'],
-      positionY: json['positionY'],
+      temperature: json['temperature'].toString(),
+      moisture: json['moisture'].toString(),
+      positionX: json['positionX'].toString(),
+      positionY: json['positionY'].toString(),
     );
   }
+  // @override
+  // String toString() {
+  //   return 'DHT model => ' +
+  //       'dhtId: ' +
+  //       this.dhtId +
+  //       '\npiId: ' +
+  //       this.piId +
+  //       '\nname: ' +
+  //       this.name +
+  //       '\nstatus: ' +
+  //       this.status.toString() +
+  //       '\isOnline: ' +
+  //       this.isOnline.toString() +
+  //       '\ntemperature: ' +
+  //       this.temperature +
+  //       '\nmoisture: ' +
+  //       this.moisture +
+  //       '\npositionX: ' +
+  //       this.positionX +
+  //       '\npositionY: ' +
+  //       this.positionY;
+  // }
 }
 
 enum DEVICE_ONLINE { ACTIVE, INACTIVE }

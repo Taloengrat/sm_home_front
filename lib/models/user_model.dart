@@ -9,4 +9,16 @@ class User {
     this.id,
     this.token,
   });
+
+  @override
+  String toString() {
+    return 'id: ' +
+        this.fname +
+        '\nfname: ' +
+        this.fname +
+        '\nlname: ' +
+        this.lname +
+        '\ntoken: ' +
+        this.token;
+  }
 }

@@ -1,10 +1,7 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sm_home_nbcha/models/pi_model.dart';
 import 'package:sm_home_nbcha/providers/devices.dart';
-import 'package:sm_home_nbcha/providers/users.dart';
 import 'package:sm_home_nbcha/screens/main/widgets/equipment_card_list.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -16,15 +13,11 @@ class DeviceField extends StatefulWidget {
     @required this.size,
     @required bool isLoading,
     @required this.device,
-    @required this.id,
-    @required this.token,
   })  : _isLoading = isLoading,
         super(key: key);
 
   final Size size;
   final bool _isLoading;
-  final String id;
-  final String token;
   final List<Pi> device;
 
   @override
@@ -37,14 +30,13 @@ class _DeviceFieldState extends State<DeviceField> {
   final piNameController = TextEditingController();
   final statusController = TextEditingController();
   var _isCreateLoading = false;
+
   String tokenId;
 
   @override
   Widget build(BuildContext context) {
-    print('ID Device => ' + widget.id);
-    print('TOKEN => ' + widget.token);
     return Container(
-      width: widget.size.width * 0.6,
+      width: widget.size.width * 0.3,
       height: widget.size.height * 0.7,
       child: Card(
         shape: RoundedRectangleBorder(
@@ -90,6 +82,9 @@ class _DeviceFieldState extends State<DeviceField> {
                   ),
                 ],
               ),
+              SizedBox(
+                height: 4,
+              ),
               Expanded(
                 child: Scrollbar(
                   radius: Radius.circular(15),
@@ -111,13 +106,15 @@ class _DeviceFieldState extends State<DeviceField> {
                       : widget.device.isNotEmpty
                           ? ListView(children: [
                               ...widget.device.map((element) {
-                                print(element);
                                 return DeviceCardList(
                                   title: element.name,
                                   status: element.deviceStatus,
                                   subTitle: Text(''),
                                   icon: SvgPicture.asset('images/circuit.svg'),
-                                  // dhtList: element.dhtList.toList(),
+                                  activate: element.activate == ACTIVATE.ACTIVE
+                                      ? true
+                                      : false,
+                                  dhtList: element.dhtList.toList(),
                                   // lightList: element.lightList.toList(),
                                 );
                               })
@@ -134,7 +131,7 @@ class _DeviceFieldState extends State<DeviceField> {
                                     child: IconButton(
                                       onPressed: () {
                                         Provider.of<Devices>(context)
-                                            .fetchData(widget.id, widget.token);
+                                            .fetchData();
                                       },
                                       icon: Icon(
                                         Icons.refresh,
@@ -269,62 +266,66 @@ class _DeviceFieldState extends State<DeviceField> {
   }
 
   void submitData() {
-    print('SUBMITTED');
-
     setState(() {
       _isCreateLoading = true;
     });
 
-    createEquipment('1', piNameController.text, 0).then((value) {
+    Provider.of<Devices>(context, listen: false)
+        .createEquipment(piNameController.text, 0)
+        .then((value) {
       Map response = jsonDecode(value.body);
-      bool resBool = response['responseMessage'];
-
-      showDialog(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              title: Center(child: Text(resBool ? 'Success' : 'Fail')),
-              content: Container(
-                height: 70,
-                width: 60,
-                child: Icon(
-                  resBool ? Icons.check_rounded : Icons.clear_rounded,
-                  color: resBool ? Colors.greenAccent : Colors.redAccent,
-                  size: 40,
-                ),
-              ),
-              actions: [
-                Center(
-                  child: FlatButton(
-                    child: Text("OK"),
-                    onPressed: () {
-                      if (resBool) {
-                        Navigator.of(context).pop();
-                        Navigator.of(context).pop();
-                      } else {
-                        Navigator.of(context).pop();
-                      }
-                    },
-                  ),
-                ),
-              ],
-            );
-          });
+      print('CREATE DEVICE RESPONSE => ' + value.body);
+      // bool resBool = response['responseMessage'];
+      if (response != null) {
+        Provider.of<Devices>(context, listen: false).fetchData();
+        Navigator.of(context).pop();
+      }
+      // showDialog(
+      //     context: context,
+      //     builder: (context) {
+      //       return AlertDialog(
+      //         title: Center(child: Text(response[] ? 'Success' : 'Fail')),
+      //         content: Container(
+      //           height: 70,
+      //           width: 60,
+      //           child: Icon(
+      //             resBool ? Icons.check_rounded : Icons.clear_rounded,
+      //             color: resBool ? Colors.greenAccent : Colors.redAccent,
+      //             size: 40,
+      //           ),
+      //         ),
+      //         actions: [
+      //           Center(
+      //             child: FlatButton(
+      //               child: Text("OK"),
+      //               onPressed: () {
+      //                 if (resBool) {
+      //                   Navigator.of(context).pop();
+      //                   Navigator.of(context).pop();
+      //                 } else {
+      //                   Navigator.of(context).pop();
+      //                 }
+      //               },
+      //             ),
+      //           ),
+      //         ],
+      //       );
+      //     });
     });
   }
 
-  Future<http.Response> createEquipment(
-      String userId, String piName, int status) async {
-    return http.post(
-      Uri.parse('http://3.142.219.106:3030/device/pi/add-pi'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, dynamic>{
-        'userId': userId,
-        'piName': piName,
-        'status': status,
-      }),
-    );
-  }
+  // Future<http.Response> createEquipment(
+  //     String userId, String piName, int status) async {
+  //   return http.post(
+  //     Uri.parse('http://3.142.219.106:3030/device/pi/add-pi'),
+  //     headers: <String, String>{
+  //       'Content-Type': 'application/json; charset=UTF-8',
+  //     },
+  //     body: jsonEncode(<String, dynamic>{
+  //       'userId': userId,
+  //       'piName': piName,
+  //       'status': status,
+  //     }),
+  //   );
+  // }
 }

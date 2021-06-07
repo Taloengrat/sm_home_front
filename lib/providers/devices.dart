@@ -1,33 +1,53 @@
+import 'dart:html';
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
-import 'package:sm_home_nbcha/models/dht_model.dart';
-import 'package:sm_home_nbcha/models/light_model.dart';
+
 import 'package:sm_home_nbcha/models/pi_model.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:sm_home_nbcha/models/user_model.dart';
 
 class Devices with ChangeNotifier {
   List<Pi> _items = [];
+  User _item;
 
   List<Pi> get item {
     return [..._items];
   }
 
-  Future<void> fetchData(String userId, String token) async {
-    // print('FETCH');
+  final Storage localStorage = window.localStorage;
+
+  Future save(User user) async {
+    localStorage['user_id_and_token'] = user.id + ':' + user.token;
+
+    print('save user : ' + user.toString());
+  }
+
+  clearStorage() async {
+    localStorage.remove('user_id_and_token');
+  }
+
+  Future<String> getIdandToken() async => localStorage['user_id_and_token'];
+
+  Future<void> fetchData() async {
+    var string = await getIdandToken();
+
     final url =
         'https://smarthome-backend-chban.com/device/pi/get-pi-by-user-id/' +
-            userId;
+            string.toString();
 
+    // print('STRING ' + string);
     try {
       final response = await http.get(Uri.parse(url), headers: {
-        HttpHeaders.authorizationHeader: 'Bearer ' + token,
+        HttpHeaders.authorizationHeader:
+            'Bearer ' + string.split(':').elementAt(1),
       });
 
       Map extractedData = jsonDecode(response.body);
-      print('res body => ' + response.body);
+      // print('res body => ' + response.body);
+
       if (extractedData == null) {
         return;
       }
@@ -38,13 +58,44 @@ class Devices with ChangeNotifier {
 
       _items = equipment;
 
-      print('NOTIFY');
-      print('RESSSSSSSSS ' + equipment[1].dhtList.toString());
       notifyListeners();
-
-      print("LIST => " + _items.toString());
     } catch (error) {
       throw (error);
     }
+  }
+
+  Future<http.Response> createEquipment(String piName, int status) async {
+    var userIdAndToken = await getIdandToken();
+
+    return http.post(
+      Uri.parse('https://smarthome-backend-chban.com/device/pi/add-pi'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+        HttpHeaders.authorizationHeader:
+            'Bearer ' + userIdAndToken.split(':').elementAt(1),
+      },
+      body: jsonEncode(<String, dynamic>{
+        'userId': userIdAndToken.split(':').elementAt(0),
+        'piName': piName,
+        'status': status,
+      }),
+    );
+  }
+
+  Future<http.Response> confirmOtp(String otp, String piId) async {
+    var userIdAndToken = await getIdandToken();
+
+    return http.post(
+      Uri.parse('https://smarthome-backend-chban.com/device/pi/confirm-otp'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+        HttpHeaders.authorizationHeader:
+            'Bearer ' + userIdAndToken.split(':').elementAt(1),
+      },
+      body: jsonEncode(<String, dynamic>{
+        'piId': piId,
+        'otp': otp,
+      }),
+    );
   }
 }

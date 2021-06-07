@@ -3,13 +3,19 @@ import 'package:sm_home_nbcha/constance.dart';
 import 'package:sm_home_nbcha/providers/devices.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
-import 'package:sm_home_nbcha/providers/users.dart';
+import 'package:sm_home_nbcha/providers/notifications.dart';
 import 'package:sm_home_nbcha/screens/main/components/ProfileCard.dart';
 import 'package:sm_home_nbcha/screens/main/components/SearchField.dart';
 import 'package:http/http.dart' as http;
+import 'package:sm_home_nbcha/screens/main/paints/overview_home.dart';
 import 'dart:convert';
-
+import 'package:flutter/services.dart';
+import 'package:sm_home_nbcha/screens/main/paints/roof_home_paint.dart';
+import 'dart:ui' as ui;
 import 'components/DeviceField.dart';
+import 'widgets/notification_badge_widget.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:sm_home_nbcha/models/notification_model.dart';
 
 class Main_screen extends StatefulWidget {
   static const String routeName = 'main-screen';
@@ -28,10 +34,39 @@ class _Main_screenState extends State<Main_screen> {
   final statusController = TextEditingController();
   final searchController = TextEditingController();
   final _formCreatePiKey = GlobalKey<FormState>();
+
+  IO.Socket socket;
+  String OTPContent = '';
+
+  ui.Image image;
   @override
   void initState() {
     Future.delayed(Duration.zero).then((_) {});
     // WidgetsBinding.instance.addPostFrameCallback((_) => getSizeAndPosition());
+    socket = IO.io('https://smarthome-backend-chban.com/');
+    socket.onConnect((_) {
+      print('connect');
+      socket.emit('msg', 'test');
+    });
+    socket.on('WS#OTP#RASPBERRY_PI#9', (data) {
+      print('RECEIVE => ' + data.toString());
+      Map<String, dynamic> value = data;
+      Provider.of<Notifications>(context, listen: false).sendNotification(
+        NotificationModel(
+            date: DateTime.now().toString(),
+            notificationType: NOTIFICATION_TYPE.OTP,
+            subTitle: value['otp'].toString(),
+            title: 'Receive OTP message'),
+      );
+
+      setState(() {
+        OTPContent = data['otp'].toString();
+      });
+    });
+    socket.onDisconnect((_) => print('disconnect'));
+    socket.on('fromServer', (_) => print(_));
+
+    loadImage('images/active.png');
     super.initState();
   }
 
@@ -40,12 +75,7 @@ class _Main_screenState extends State<Main_screen> {
     if (_isInit) {
       _isLoading = true;
 
-      var user = Provider.of<Users>(context).item;
-
-      print('ID => ' + user.id);
-      Provider.of<Devices>(context)
-          .fetchData(user.id, user.token)
-          .then((value) {
+      Provider.of<Devices>(context).fetchData().then((value) {
         setState(() {
           _isLoading = false;
         });
@@ -89,7 +119,6 @@ class _Main_screenState extends State<Main_screen> {
   @override
   Widget build(BuildContext context) {
     final device = Provider.of<Devices>(context).item;
-    final user = Provider.of<Users>(context, listen: false).item;
 
     Size size = MediaQuery.of(context).size;
 
@@ -106,24 +135,45 @@ class _Main_screenState extends State<Main_screen> {
             Center(
               child: Container(
                 width: size.width * 0.85,
-                height: size.width * 0.8,
+                height: double.infinity,
                 decoration: BoxDecoration(
                   border: Border.all(color: secondaryColor),
                   borderRadius: BorderRadius.all(
                     Radius.circular(16),
                   ),
                 ),
-                margin: EdgeInsets.symmetric(vertical: 40),
+                margin: EdgeInsets.only(top: 120, bottom: 40),
                 padding: EdgeInsets.symmetric(vertical: 32, horizontal: 32),
                 child: InteractiveViewer(
                   scaleEnabled: true,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage('images/plan.jpg'),
-                        fit: BoxFit.contain,
+                  child: Stack(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          image: DecorationImage(
+                            image: AssetImage('images/plan.jpg'),
+                            fit: BoxFit.contain,
+                          ),
+                        ),
                       ),
-                    ),
+                      // Center(
+                      //   child: image == null
+                      //       ? CircularProgressIndicator()
+                      //       : Container(
+                      //           height: 300,
+                      //           width: 300,
+                      //           child: FittedBox(
+                      //             child: SizedBox(
+                      //               width: image.width.toDouble(),
+                      //               height: image.height.toDouble(),
+                      //               child: CustomPaint(
+                      //                 painter: ImagePainter(image),
+                      //               ),
+                      //             ),
+                      //           ),
+                      //         ),
+                      // ),
+                    ],
                   ),
                 ),
               ),
@@ -217,11 +267,7 @@ class _Main_screenState extends State<Main_screen> {
                               spreadRadius: 3.0)
                         ],
                       ),
-                      child: Tooltip(
-                        message: 'Notification',
-                        child: IconButton(
-                            icon: Icon(Icons.notifications), onPressed: () {}),
-                      ),
+                      child: NotificationBadgeWidget(),
                     ),
                     SizedBox(
                       width: 8,
@@ -269,6 +315,40 @@ class _Main_screenState extends State<Main_screen> {
               ),
             ),
 
+            //Overview home
+            Positioned(
+              left: 10,
+              bottom: 10,
+              child: Container(
+                child: Stack(
+                  alignment: Alignment.topCenter,
+                  children: [
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 90,
+                      child: CustomPaint(
+                        size: Size(130, 60),
+                        painter: TrianglePainter(),
+                      ),
+                    ),
+                    Container(
+                      width: 150,
+                      height: 120,
+                      child: CustomPaint(
+                        painter: OverviewHomePainter(),
+                        // child: Text(
+                        //   "Custom Paint",
+                        //   style: TextStyle(fontSize: 30, fontStyle: FontStyle.italic),
+                        // ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
             if (_isMenuOpen)
               Positioned(
                 top: 90,
@@ -277,13 +357,36 @@ class _Main_screenState extends State<Main_screen> {
                   size: size,
                   isLoading: _isLoading,
                   device: device,
-                  id: user.id,
-                  token: user.token,
+                ),
+              ),
+
+            if (OTPContent.isNotEmpty)
+              Positioned(
+                top: 120,
+                left: 50,
+                child: Container(
+                  height: 60,
+                  width: 100,
+                  decoration: BoxDecoration(
+                    color: Colors.greenAccent,
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Center(
+                    child: Text(OTPContent),
+                  ),
                 ),
               ),
           ],
         ),
       ),
     );
+  }
+
+  Future loadImage(String path) async {
+    final data = await rootBundle.load(path);
+    final bytes = data.buffer.asUint8List();
+    final image = await decodeImageFromList(bytes);
+
+    setState(() => this.image = image);
   }
 }
