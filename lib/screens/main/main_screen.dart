@@ -7,12 +7,14 @@ import 'package:sm_home_nbcha/providers/notifications.dart';
 import 'package:sm_home_nbcha/screens/main/components/ProfileCard.dart';
 import 'package:sm_home_nbcha/screens/main/components/SearchField.dart';
 import 'package:http/http.dart' as http;
+import 'package:sm_home_nbcha/screens/main/components/symbol_drag_object.dart';
 import 'package:sm_home_nbcha/screens/main/paints/overview_home.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:sm_home_nbcha/screens/main/paints/roof_home_paint.dart';
 import 'dart:ui' as ui;
 import 'components/DeviceField.dart';
+import 'paints/image_paint.dart';
 import 'widgets/notification_badge_widget.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:sm_home_nbcha/models/notification_model.dart';
@@ -66,7 +68,7 @@ class _Main_screenState extends State<Main_screen> {
     socket.onDisconnect((_) => print('disconnect'));
     socket.on('fromServer', (_) => print(_));
 
-    loadImage('images/active.png');
+    loadImage('images/circuit.svg');
     super.initState();
   }
 
@@ -134,49 +136,58 @@ class _Main_screenState extends State<Main_screen> {
             // Plan picture
             Center(
               child: Container(
-                width: size.width * 0.85,
-                height: double.infinity,
-                decoration: BoxDecoration(
-                  border: Border.all(color: secondaryColor),
-                  borderRadius: BorderRadius.all(
-                    Radius.circular(16),
+                  width: size.width * 0.85,
+                  height: double.infinity,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: secondaryColor),
+                    borderRadius: BorderRadius.all(
+                      Radius.circular(16),
+                    ),
                   ),
-                ),
-                margin: EdgeInsets.only(top: 120, bottom: 40),
-                padding: EdgeInsets.symmetric(vertical: 32, horizontal: 32),
-                child: InteractiveViewer(
-                  scaleEnabled: true,
-                  child: Stack(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          image: DecorationImage(
-                            image: AssetImage('images/plan.jpg'),
-                            fit: BoxFit.contain,
+                  margin: EdgeInsets.only(top: 120, bottom: 40),
+                  padding: EdgeInsets.symmetric(vertical: 32, horizontal: 32),
+                  child: LayoutBuilder(builder: (context, constraints) {
+                    return InteractiveViewer(
+                      scaleEnabled: true,
+                      child: Stack(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              image: DecorationImage(
+                                image: AssetImage('images/plan.jpg'),
+                                fit: BoxFit.contain,
+                              ),
+                            ),
                           ),
-                        ),
+                          SymbolDragObject(
+                            key: GlobalKey(),
+                            initPos: Offset(500, 0.0),
+                            id: 'Item 2',
+                            itmColor: Colors.pink,
+                            scopeArea: Size(
+                              constraints.maxWidth,
+                              constraints.maxHeight,
+                            ),
+                            itemWidget: image == null
+                                ? CircularProgressIndicator()
+                                : Container(
+                                    height: 300,
+                                    width: 300,
+                                    child: FittedBox(
+                                      child: SizedBox(
+                                        width: image.width.toDouble(),
+                                        height: image.height.toDouble(),
+                                        child: CustomPaint(
+                                          painter: ImagePainter(image),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                          ),
+                        ],
                       ),
-                      // Center(
-                      //   child: image == null
-                      //       ? CircularProgressIndicator()
-                      //       : Container(
-                      //           height: 300,
-                      //           width: 300,
-                      //           child: FittedBox(
-                      //             child: SizedBox(
-                      //               width: image.width.toDouble(),
-                      //               height: image.height.toDouble(),
-                      //               child: CustomPaint(
-                      //                 painter: ImagePainter(image),
-                      //               ),
-                      //             ),
-                      //           ),
-                      //         ),
-                      // ),
-                    ],
-                  ),
-                ),
-              ),
+                    );
+                  })),
             ),
 
             // Header
@@ -274,7 +285,6 @@ class _Main_screenState extends State<Main_screen> {
                     ),
                     Center(
                       // Menu
-
                       child: Container(
                         width: 55,
                         height: 55,
@@ -386,7 +396,6 @@ class _Main_screenState extends State<Main_screen> {
     final data = await rootBundle.load(path);
     final bytes = data.buffer.asUint8List();
     final image = await decodeImageFromList(bytes);
-
     setState(() => this.image = image);
   }
 }

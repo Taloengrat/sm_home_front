@@ -10,7 +10,11 @@ class ImagePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint();
 
-    canvas.drawImage(image, Offset.zero, paint);
+    canvas.drawImage(
+      image,
+      Offset.zero,
+      paint,
+    );
   }
 
   @override
